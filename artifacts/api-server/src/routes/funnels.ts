@@ -77,6 +77,80 @@ const FUNNEL_TEMPLATES: Record<string, { label: string; pages: TemplatePageDef[]
       { name: "Download Page", type: "download", sectionTypes: ["hero", "cta"] },
     ],
   },
+  event_registration: {
+    label: "Event Registration",
+    pages: [
+      { name: "Event Landing", type: "landing", sectionTypes: ["hero", "features", "social_proof", "optin"] },
+      { name: "Confirmation", type: "confirmation", sectionTypes: ["hero", "cta"] },
+    ],
+  },
+  ebook_download: {
+    label: "eBook / Guide",
+    pages: [
+      { name: "Book Landing", type: "landing", sectionTypes: ["hero", "features", "social_proof", "optin"] },
+      { name: "Download Page", type: "download", sectionTypes: ["hero", "cta"] },
+    ],
+  },
+  consultation_booking: {
+    label: "Book a Consultation",
+    pages: [
+      { name: "Booking Page", type: "landing", sectionTypes: ["hero", "features", "social_proof", "optin"] },
+      { name: "Confirmation", type: "confirmation", sectionTypes: ["hero", "cta"] },
+    ],
+  },
+  flash_sale: {
+    label: "Flash Sale",
+    pages: [
+      { name: "Sale Page", type: "landing", sectionTypes: ["hero", "pricing", "social_proof", "faq", "cta"] },
+      { name: "Order Page", type: "order", sectionTypes: ["optin", "cta"] },
+      { name: "Thank You", type: "thankyou", sectionTypes: ["hero", "cta"] },
+    ],
+  },
+  app_download: {
+    label: "App Download",
+    pages: [
+      { name: "App Landing", type: "landing", sectionTypes: ["hero", "features", "social_proof", "cta"] },
+      { name: "App Store Page", type: "appstore", sectionTypes: ["hero", "pricing", "cta"] },
+    ],
+  },
+  membership: {
+    label: "Membership / Community",
+    pages: [
+      { name: "Membership Page", type: "landing", sectionTypes: ["hero", "features", "pricing", "social_proof", "faq", "cta"] },
+      { name: "Join Form", type: "join", sectionTypes: ["optin", "cta"] },
+      { name: "Welcome", type: "welcome", sectionTypes: ["hero", "cta"] },
+    ],
+  },
+  course_enrollment: {
+    label: "Course Enrollment",
+    pages: [
+      { name: "Course Landing", type: "landing", sectionTypes: ["hero", "video", "features", "social_proof", "pricing", "faq", "cta"] },
+      { name: "Enrollment Form", type: "enrollment", sectionTypes: ["optin", "cta"] },
+      { name: "Student Welcome", type: "welcome", sectionTypes: ["hero", "cta"] },
+    ],
+  },
+  referral: {
+    label: "Referral Program",
+    pages: [
+      { name: "Referral Landing", type: "landing", sectionTypes: ["hero", "features", "social_proof", "optin"] },
+      { name: "Reward Page", type: "reward", sectionTypes: ["hero", "pricing", "cta"] },
+    ],
+  },
+  quiz_funnel: {
+    label: "Quiz / Survey",
+    pages: [
+      { name: "Quiz Start", type: "quiz", sectionTypes: ["hero", "cta"] },
+      { name: "Results Page", type: "results", sectionTypes: ["hero", "social_proof", "optin"] },
+      { name: "Offer Page", type: "offer", sectionTypes: ["pricing", "faq", "cta"] },
+    ],
+  },
+  waitlist: {
+    label: "Product Waitlist",
+    pages: [
+      { name: "Coming Soon", type: "waitlist", sectionTypes: ["hero", "features", "optin"] },
+      { name: "Confirmed", type: "confirmation", sectionTypes: ["hero", "social_proof"] },
+    ],
+  },
 };
 
 function makeEmptySection(type: SectionType, index: number) {
