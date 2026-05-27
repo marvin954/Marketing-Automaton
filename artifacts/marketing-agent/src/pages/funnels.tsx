@@ -927,12 +927,19 @@ function PageEditor({ businessId, funnel, page }: { businessId: number; funnel: 
             >
               {isGenerating ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Generating...</> : <><Wand2 className="h-3.5 w-3.5 text-primary" /> Generate All</>}
             </Button>
-            {isDirty && (
-              <Button size="sm" className="gap-2" disabled={updateMutation.isPending} onClick={handleSave}>
-                {updateMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-                Save
-              </Button>
-            )}
+            <Button
+              size="sm"
+              className="gap-2 min-w-[80px]"
+              disabled={!isDirty || updateMutation.isPending}
+              onClick={handleSave}
+              variant={isDirty ? "default" : "outline"}
+            >
+              {updateMutation.isPending
+                ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Saving...</>
+                : isDirty
+                  ? <><Save className="h-3.5 w-3.5" /> Save</>
+                  : <><Check className="h-3.5 w-3.5" /> Saved</>}
+            </Button>
           </div>
         </div>
         <div className="flex items-center gap-2 px-4 pb-3 border-t border-border/50 pt-3">
