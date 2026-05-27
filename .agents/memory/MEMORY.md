@@ -1,0 +1,3 @@
+- [Port routing constraints](port-routing.md) — only ports 8080 and 8081 map to external ports; serve frontend statically from Express to avoid port issues.
+- [Express 5 wildcard routes](express5-wildcard.md) — use `app.use(fallback)` not `app.get("*", ...)` in Express 5 (path-to-regexp v8 breaks).
+- [Orval codegen collision rule](orval-collision.md) — never use query params on operations with path params; causes TS2308 collision between Zod schema and TS type.

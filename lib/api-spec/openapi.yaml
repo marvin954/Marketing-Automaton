@@ -1,22 +1,35 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: AI Marketing Agent API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: businesses
+    description: Business management
+  - name: content
+    description: AI content generation
+  - name: campaigns
+    description: Marketing campaigns
+  - name: analytics
+    description: Analytics and reporting
+  - name: seo
+    description: SEO and keyword research
+  - name: competitors
+    description: Competitor analysis
+  - name: openai
+    description: OpenAI AI chat and operations
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +37,638 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  # --- Businesses ---
+  /businesses:
+    get:
+      operationId: listBusinesses
+      tags: [businesses]
+      summary: List all businesses
+      responses:
+        "200":
+          description: List of businesses
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Business"
+    post:
+      operationId: createBusiness
+      tags: [businesses]
+      summary: Create a new business
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BusinessInput"
+      responses:
+        "201":
+          description: Created business
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Business"
+
+  /businesses/{id}:
+    get:
+      operationId: getBusiness
+      tags: [businesses]
+      summary: Get a business by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Business details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Business"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateBusiness
+      tags: [businesses]
+      summary: Update a business
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BusinessUpdate"
+      responses:
+        "200":
+          description: Updated business
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Business"
+    delete:
+      operationId: deleteBusiness
+      tags: [businesses]
+      summary: Delete a business
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /businesses/{id}/stats:
+    get:
+      operationId: getBusinessStats
+      tags: [businesses]
+      summary: Get aggregated marketing stats for a business
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Business marketing stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BusinessStats"
+
+  # --- Content Generation ---
+  /businesses/{businessId}/content:
+    get:
+      operationId: fetchContent
+      tags: [content]
+      summary: List generated content for a business
+      parameters:
+        - name: businessId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of content pieces
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ContentPiece"
+    post:
+      operationId: generateContent
+      tags: [content]
+      summary: Generate AI content (streams SSE)
+      parameters:
+        - name: businessId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContentRequest"
+      responses:
+        "200":
+          description: SSE stream of generated content
+          content:
+            text/event-stream: {}
+
+  /businesses/{businessId}/content/{id}:
+    get:
+      operationId: getContent
+      tags: [content]
+      summary: Get a content piece
+      parameters:
+        - name: businessId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Content piece
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContentPiece"
+    delete:
+      operationId: deleteContent
+      tags: [content]
+      summary: Delete a content piece
+      parameters:
+        - name: businessId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /businesses/{businessId}/content/recent:
+    get:
+      operationId: listRecentContent
+      tags: [content]
+      summary: Get recent content across all types for a business
+      parameters:
+        - name: businessId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Recent content pieces
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ContentPiece"
+
+  # --- Campaigns ---
+  /businesses/{businessId}/campaigns:
+    get:
+      operationId: listCampaigns
+      tags: [campaigns]
+      summary: List marketing campaigns for a business
+      parameters:
+        - name: businessId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of campaigns
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Campaign"
+    post:
+      operationId: createCampaign
+      tags: [campaigns]
+      summary: Create a campaign
+      parameters:
+        - name: businessId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CampaignInput"
+      responses:
+        "201":
+          description: Created campaign
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Campaign"
+
+  /businesses/{businessId}/campaigns/{id}:
+    get:
+      operationId: getCampaign
+      tags: [campaigns]
+      summary: Get a campaign
+      parameters:
+        - name: businessId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Campaign details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Campaign"
+    patch:
+      operationId: updateCampaign
+      tags: [campaigns]
+      summary: Update a campaign
+      parameters:
+        - name: businessId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CampaignUpdate"
+      responses:
+        "200":
+          description: Updated campaign
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Campaign"
+    delete:
+      operationId: deleteCampaign
+      tags: [campaigns]
+      summary: Delete a campaign
+      parameters:
+        - name: businessId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /businesses/{businessId}/campaigns/summary:
+    get:
+      operationId: getCampaignsSummary
+      tags: [campaigns]
+      summary: Get campaign status breakdown for a business
+      parameters:
+        - name: businessId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Campaign summary by status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CampaignsSummary"
+
+  # --- Analytics ---
+  /businesses/{businessId}/analytics:
+    get:
+      operationId: fetchAnalytics
+      tags: [analytics]
+      summary: Get analytics data for a business
+      parameters:
+        - name: businessId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Analytics data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Analytics"
+
+  /businesses/{businessId}/analytics/activity:
+    get:
+      operationId: getActivityFeed
+      tags: [analytics]
+      summary: Get recent marketing activity for a business
+      parameters:
+        - name: businessId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Activity feed
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ActivityItem"
+
+  # --- SEO ---
+  /businesses/{businessId}/seo/keywords:
+    get:
+      operationId: listKeywords
+      tags: [seo]
+      summary: List SEO keywords for a business
+      parameters:
+        - name: businessId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of keywords
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Keyword"
+
+  /businesses/{businessId}/seo/research:
+    post:
+      operationId: runSeoResearch
+      tags: [seo]
+      summary: Run AI-powered SEO keyword research (streams SSE)
+      parameters:
+        - name: businessId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SeoResearchRequest"
+      responses:
+        "200":
+          description: SSE stream of SEO research results
+          content:
+            text/event-stream: {}
+
+  # --- Competitors ---
+  /businesses/{businessId}/competitors:
+    get:
+      operationId: listCompetitors
+      tags: [competitors]
+      summary: List competitors for a business
+      parameters:
+        - name: businessId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of competitors
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Competitor"
+    post:
+      operationId: createCompetitor
+      tags: [competitors]
+      summary: Add a competitor
+      parameters:
+        - name: businessId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CompetitorInput"
+      responses:
+        "201":
+          description: Created competitor
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Competitor"
+
+  /businesses/{businessId}/competitors/{id}:
+    delete:
+      operationId: deleteCompetitor
+      tags: [competitors]
+      summary: Remove a competitor
+      parameters:
+        - name: businessId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /businesses/{businessId}/competitors/{id}/analyze:
+    post:
+      operationId: analyzeCompetitor
+      tags: [competitors]
+      summary: Run AI competitor analysis (streams SSE)
+      parameters:
+        - name: businessId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: SSE stream of competitor analysis
+          content:
+            text/event-stream: {}
+
+  # --- OpenAI Chat (marketing assistant) ---
+  /openai/conversations:
+    get:
+      operationId: listOpenaiConversations
+      tags: [openai]
+      summary: List all conversations
+      responses:
+        "200":
+          description: List of conversations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OpenaiConversation"
+    post:
+      operationId: createOpenaiConversation
+      tags: [openai]
+      summary: Create a new conversation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OpenaiConversationInput"
+      responses:
+        "201":
+          description: Created conversation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpenaiConversation"
+
+  /openai/conversations/{id}:
+    get:
+      operationId: getOpenaiConversation
+      tags: [openai]
+      summary: Get conversation with messages
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Conversation with messages
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpenaiConversationWithMessages"
+        "404":
+          description: Not found
+    delete:
+      operationId: deleteOpenaiConversation
+      tags: [openai]
+      summary: Delete a conversation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /openai/conversations/{id}/messages:
+    get:
+      operationId: listOpenaiMessages
+      tags: [openai]
+      summary: List messages in a conversation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of messages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OpenaiMessage"
+    post:
+      operationId: sendOpenaiMessage
+      tags: [openai]
+      summary: Send a text message and receive a streaming response
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OpenaiMessageInput"
+      responses:
+        "200":
+          description: SSE stream of assistant text chunks
+          content:
+            text/event-stream: {}
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +679,455 @@ components:
       required:
         - status
 
+    # --- Business schemas ---
+    Business:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        industry:
+          type: string
+        description:
+          type: string
+        website:
+          type: ["string", "null"]
+        targetAudience:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - industry
+        - description
+        - createdAt
+        - updatedAt
+
+    BusinessInput:
+      type: object
+      properties:
+        name:
+          type: string
+        industry:
+          type: string
+        description:
+          type: string
+        website:
+          type: string
+        targetAudience:
+          type: string
+      required:
+        - name
+        - industry
+        - description
+
+    BusinessUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        industry:
+          type: string
+        description:
+          type: string
+        website:
+          type: string
+        targetAudience:
+          type: string
+
+    BusinessStats:
+      type: object
+      properties:
+        totalContent:
+          type: integer
+        activeCampaigns:
+          type: integer
+        totalKeywords:
+          type: integer
+        totalCompetitors:
+          type: integer
+        contentByType:
+          type: object
+          additionalProperties:
+            type: integer
+      required:
+        - totalContent
+        - activeCampaigns
+        - totalKeywords
+        - totalCompetitors
+        - contentByType
+
+    # --- Content schemas ---
+    ContentPiece:
+      type: object
+      properties:
+        id:
+          type: integer
+        businessId:
+          type: integer
+        type:
+          type: string
+          enum: [blog, social, email, ad, strategy]
+        title:
+          type: string
+        body:
+          type: string
+        platform:
+          type: ["string", "null"]
+        tone:
+          type: ["string", "null"]
+        status:
+          type: string
+          enum: [draft, published, archived]
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - businessId
+        - type
+        - title
+        - body
+        - status
+        - createdAt
+
+    ContentRequest:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [blog, social, email, ad, strategy]
+        topic:
+          type: string
+        tone:
+          type: string
+        platform:
+          type: string
+        additionalContext:
+          type: string
+      required:
+        - type
+        - topic
+
+    # --- Campaign schemas ---
+    Campaign:
+      type: object
+      properties:
+        id:
+          type: integer
+        businessId:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+          enum: [draft, active, paused, completed]
+        channel:
+          type: string
+          enum: [social, email, seo, ads, content, multi]
+        startDate:
+          type: ["string", "null"]
+        endDate:
+          type: ["string", "null"]
+        budget:
+          type: ["number", "null"]
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - businessId
+        - name
+        - description
+        - status
+        - channel
+        - createdAt
+
+    CampaignInput:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        channel:
+          type: string
+          enum: [social, email, seo, ads, content, multi]
+        startDate:
+          type: string
+        endDate:
+          type: string
+        budget:
+          type: number
+      required:
+        - name
+        - description
+        - channel
+
+    CampaignUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+          enum: [draft, active, paused, completed]
+        channel:
+          type: string
+          enum: [social, email, seo, ads, content, multi]
+        startDate:
+          type: string
+        endDate:
+          type: string
+        budget:
+          type: number
+
+    CampaignsSummary:
+      type: object
+      properties:
+        draft:
+          type: integer
+        active:
+          type: integer
+        paused:
+          type: integer
+        completed:
+          type: integer
+        total:
+          type: integer
+      required:
+        - draft
+        - active
+        - paused
+        - completed
+        - total
+
+    # --- Analytics schemas ---
+    Analytics:
+      type: object
+      properties:
+        period:
+          type: string
+        contentGenerated:
+          type: integer
+        campaignsRun:
+          type: integer
+        keywordsTracked:
+          type: integer
+        competitorsAnalyzed:
+          type: integer
+        contentByType:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChartDataPoint"
+        campaignActivity:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChartDataPoint"
+      required:
+        - period
+        - contentGenerated
+        - campaignsRun
+        - keywordsTracked
+        - competitorsAnalyzed
+        - contentByType
+        - campaignActivity
+
+    ChartDataPoint:
+      type: object
+      properties:
+        label:
+          type: string
+        value:
+          type: integer
+      required:
+        - label
+        - value
+
+    ActivityItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        type:
+          type: string
+        description:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - type
+        - description
+        - createdAt
+
+    # --- SEO schemas ---
+    Keyword:
+      type: object
+      properties:
+        id:
+          type: integer
+        businessId:
+          type: integer
+        keyword:
+          type: string
+        searchVolume:
+          type: ["integer", "null"]
+        difficulty:
+          type: ["integer", "null"]
+        intent:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - businessId
+        - keyword
+        - createdAt
+
+    SeoResearchRequest:
+      type: object
+      properties:
+        topic:
+          type: string
+        additionalContext:
+          type: string
+      required:
+        - topic
+
+    # --- Competitor schemas ---
+    Competitor:
+      type: object
+      properties:
+        id:
+          type: integer
+        businessId:
+          type: integer
+        name:
+          type: string
+        website:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+        strengths:
+          type: ["string", "null"]
+        weaknesses:
+          type: ["string", "null"]
+        lastAnalyzedAt:
+          type: ["string", "null"]
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - businessId
+        - name
+        - createdAt
+
+    CompetitorInput:
+      type: object
+      properties:
+        name:
+          type: string
+        website:
+          type: string
+        notes:
+          type: string
+      required:
+        - name
+
+    # --- OpenAI schemas ---
+    OpenaiConversation:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - title
+        - createdAt
+
+    OpenaiConversationWithMessages:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        messages:
+          type: array
+          items:
+            $ref: "#/components/schemas/OpenaiMessage"
+      required:
+        - id
+        - title
+        - createdAt
+        - messages
+
+    OpenaiMessage:
+      type: object
+      properties:
+        id:
+          type: integer
+        conversationId:
+          type: integer
+        role:
+          type: string
+        content:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - conversationId
+        - role
+        - content
+        - createdAt
+
+    OpenaiConversationInput:
+      type: object
+      properties:
+        title:
+          type: string
+      required:
+        - title
+
+    OpenaiMessageInput:
+      type: object
+      properties:
+        content:
+          type: string
+      required:
+        - content
+
+    OpenaiError:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
