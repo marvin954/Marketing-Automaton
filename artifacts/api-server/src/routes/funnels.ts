@@ -151,6 +151,158 @@ const FUNNEL_TEMPLATES: Record<string, { label: string; pages: TemplatePageDef[]
       { name: "Confirmed", type: "confirmation", sectionTypes: ["hero", "social_proof"] },
     ],
   },
+  // ── Business-type templates ──────────────────────────────────────────────
+  restaurant: {
+    label: "Restaurant / Dining",
+    pages: [
+      { name: "Menu Showcase", type: "landing", sectionTypes: ["hero", "video", "features", "social_proof", "cta"] },
+      { name: "Reservation Form", type: "reservation", sectionTypes: ["hero", "optin"] },
+    ],
+  },
+  ecommerce: {
+    label: "Online Store",
+    pages: [
+      { name: "Store Landing", type: "landing", sectionTypes: ["hero", "features", "social_proof", "pricing", "cta"] },
+      { name: "Featured Product", type: "product", sectionTypes: ["hero", "video", "features", "pricing", "faq", "cta"] },
+      { name: "Checkout", type: "checkout", sectionTypes: ["optin", "cta"] },
+    ],
+  },
+  real_estate: {
+    label: "Real Estate",
+    pages: [
+      { name: "Agency Landing", type: "landing", sectionTypes: ["hero", "features", "social_proof", "pricing", "cta"] },
+      { name: "Property Listings", type: "listings", sectionTypes: ["features", "pricing"] },
+      { name: "Buyer Inquiry", type: "inquiry", sectionTypes: ["hero", "optin"] },
+    ],
+  },
+  law_firm: {
+    label: "Law Firm",
+    pages: [
+      { name: "Practice Landing", type: "landing", sectionTypes: ["hero", "features", "social_proof", "faq", "cta"] },
+      { name: "Case Intake", type: "intake", sectionTypes: ["hero", "optin"] },
+    ],
+  },
+  healthcare: {
+    label: "Healthcare / Clinic",
+    pages: [
+      { name: "Practice Landing", type: "landing", sectionTypes: ["hero", "features", "social_proof", "faq", "cta"] },
+      { name: "Appointment Booking", type: "booking", sectionTypes: ["hero", "optin"] },
+      { name: "Confirmation", type: "confirmation", sectionTypes: ["hero", "cta"] },
+    ],
+  },
+  fitness: {
+    label: "Gym / Fitness Studio",
+    pages: [
+      { name: "Studio Landing", type: "landing", sectionTypes: ["hero", "video", "features", "pricing", "social_proof", "cta"] },
+      { name: "Free Trial Signup", type: "signup", sectionTypes: ["hero", "optin"] },
+      { name: "Welcome", type: "welcome", sectionTypes: ["hero", "features", "cta"] },
+    ],
+  },
+  beauty_salon: {
+    label: "Beauty Salon / Spa",
+    pages: [
+      { name: "Salon Showcase", type: "landing", sectionTypes: ["hero", "features", "pricing", "social_proof", "cta"] },
+      { name: "Online Booking", type: "booking", sectionTypes: ["hero", "optin"] },
+    ],
+  },
+  photography: {
+    label: "Photography / Creative",
+    pages: [
+      { name: "Portfolio Showcase", type: "landing", sectionTypes: ["hero", "video", "features", "social_proof", "cta"] },
+      { name: "Package Pricing", type: "pricing", sectionTypes: ["pricing", "faq"] },
+      { name: "Project Inquiry", type: "inquiry", sectionTypes: ["hero", "optin"] },
+    ],
+  },
+  saas: {
+    label: "SaaS / Tech Product",
+    pages: [
+      { name: "Product Landing", type: "landing", sectionTypes: ["hero", "video", "features", "pricing", "social_proof", "faq", "cta"] },
+      { name: "Signup / Trial", type: "signup", sectionTypes: ["hero", "optin"] },
+      { name: "Onboarding Welcome", type: "welcome", sectionTypes: ["hero", "features", "cta"] },
+    ],
+  },
+  consulting: {
+    label: "Consulting / Coaching",
+    pages: [
+      { name: "Expert Landing", type: "landing", sectionTypes: ["hero", "features", "social_proof", "pricing", "faq", "cta"] },
+      { name: "Strategy Call", type: "booking", sectionTypes: ["hero", "optin"] },
+    ],
+  },
+  nonprofit: {
+    label: "Non-profit / Charity",
+    pages: [
+      { name: "Mission Page", type: "landing", sectionTypes: ["hero", "video", "features", "social_proof", "cta"] },
+      { name: "Donate / Volunteer", type: "donate", sectionTypes: ["hero", "pricing", "optin"] },
+      { name: "Thank You", type: "thankyou", sectionTypes: ["hero", "cta"] },
+    ],
+  },
+  local_service: {
+    label: "Local Service Business",
+    pages: [
+      { name: "Service Landing", type: "landing", sectionTypes: ["hero", "features", "social_proof", "pricing", "faq", "cta"] },
+      { name: "Free Quote Request", type: "quote", sectionTypes: ["hero", "optin"] },
+    ],
+  },
+  hotel: {
+    label: "Hotel / Hospitality",
+    pages: [
+      { name: "Property Showcase", type: "landing", sectionTypes: ["hero", "video", "features", "pricing", "social_proof", "cta"] },
+      { name: "Room Booking", type: "booking", sectionTypes: ["hero", "pricing", "optin"] },
+      { name: "Booking Confirmed", type: "confirmation", sectionTypes: ["hero", "cta"] },
+    ],
+  },
+  financial: {
+    label: "Financial Services",
+    pages: [
+      { name: "Advisory Landing", type: "landing", sectionTypes: ["hero", "features", "social_proof", "pricing", "faq", "cta"] },
+      { name: "Consultation Request", type: "inquiry", sectionTypes: ["hero", "optin"] },
+    ],
+  },
+  tutoring: {
+    label: "Education / Tutoring",
+    pages: [
+      { name: "Program Landing", type: "landing", sectionTypes: ["hero", "features", "social_proof", "pricing", "faq", "cta"] },
+      { name: "Enrollment Form", type: "enrollment", sectionTypes: ["hero", "optin"] },
+      { name: "Student Welcome", type: "welcome", sectionTypes: ["hero", "cta"] },
+    ],
+  },
+  wedding: {
+    label: "Wedding / Event Planning",
+    pages: [
+      { name: "Planner Showcase", type: "landing", sectionTypes: ["hero", "video", "features", "social_proof", "pricing", "cta"] },
+      { name: "Venue Inquiry", type: "inquiry", sectionTypes: ["hero", "optin"] },
+    ],
+  },
+  pet_services: {
+    label: "Pet Services",
+    pages: [
+      { name: "Service Landing", type: "landing", sectionTypes: ["hero", "features", "social_proof", "pricing", "cta"] },
+      { name: "Appointment Booking", type: "booking", sectionTypes: ["hero", "optin"] },
+    ],
+  },
+  interior_design: {
+    label: "Interior Design",
+    pages: [
+      { name: "Studio Portfolio", type: "landing", sectionTypes: ["hero", "video", "features", "social_proof", "pricing", "cta"] },
+      { name: "Project Inquiry", type: "inquiry", sectionTypes: ["hero", "optin"] },
+    ],
+  },
+  automotive: {
+    label: "Automotive / Dealership",
+    pages: [
+      { name: "Dealership Landing", type: "landing", sectionTypes: ["hero", "features", "social_proof", "pricing", "faq", "cta"] },
+      { name: "Test Drive Booking", type: "booking", sectionTypes: ["hero", "optin"] },
+      { name: "Confirmed", type: "confirmation", sectionTypes: ["hero", "cta"] },
+    ],
+  },
+  dental: {
+    label: "Dental Practice",
+    pages: [
+      { name: "Practice Landing", type: "landing", sectionTypes: ["hero", "features", "social_proof", "pricing", "faq", "cta"] },
+      { name: "New Patient Form", type: "intake", sectionTypes: ["hero", "optin"] },
+      { name: "Appointment Confirmed", type: "confirmation", sectionTypes: ["hero", "cta"] },
+    ],
+  },
 };
 
 function makeEmptySection(type: SectionType, index: number) {
