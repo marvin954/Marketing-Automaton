@@ -11,6 +11,7 @@ import {
   UpdateFunnelPageParams,
   UpdateFunnelPageBody,
   GenerateFunnelPageParams,
+  GenerateSectionParams,
 } from "@workspace/api-zod";
 import { openai } from "@workspace/integrations-openai-ai-server";
 
@@ -508,6 +509,119 @@ router.put("/businesses/:businessId/funnels/:funnelId/pages/:id", async (req, re
 // AI generate page copy (SSE)
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// AI generate single section (SSE)
+// ---------------------------------------------------------------------------
+
+router.post("/businesses/:businessId/funnels/:funnelId/pages/:pageId/sections/generate", async (req, res) => {
+  const parsed = GenerateSectionParams.safeParse({
+    businessId: req.params.businessId,
+    funnelId: req.params.funnelId,
+    pageId: req.params.pageId,
+  });
+  if (!parsed.success) return res.status(400).json({ error: "Invalid params" });
+
+  const { businessId, funnelId, pageId } = parsed.data;
+  const { sectionType, sectionId, customInstruction } = (req.body ?? {}) as {
+    sectionType: string;
+    sectionId: string;
+    customInstruction?: string;
+  };
+  if (!sectionType || !sectionId) return res.status(400).json({ error: "sectionType and sectionId required" });
+
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+
+  try {
+    const [business] = await db.select().from(businessesTable).where(eq(businessesTable.id, businessId));
+    if (!business) { res.write(`data: ${JSON.stringify({ error: "Business not found" })}\n\n`); res.end(); return; }
+
+    const [funnel] = await db.select().from(funnelsTable).where(and(eq(funnelsTable.id, funnelId), eq(funnelsTable.businessId, businessId)));
+    if (!funnel) { res.write(`data: ${JSON.stringify({ error: "Funnel not found" })}\n\n`); res.end(); return; }
+
+    const [page] = await db.select().from(funnelPagesTable).where(and(eq(funnelPagesTable.id, pageId), eq(funnelPagesTable.funnelId, funnelId)));
+    if (!page) { res.write(`data: ${JSON.stringify({ error: "Page not found" })}\n\n`); res.end(); return; }
+
+    const existingSections = page.sections as Array<{ id: string; type: string; content: object }>;
+    const currentSection = existingSections.find((s) => s.id === sectionId);
+
+    const contentSchemas: Record<string, string> = {
+      hero: `{"headline":"<compelling headline>","subheadline":"<supporting subheadline>","ctaText":"<button text>","ctaUrl":"#"}`,
+      features: `{"title":"<section title>","items":[{"title":"<feature>","description":"<benefit>","icon":"star"},{"title":"<feature>","description":"<benefit>","icon":"zap"},{"title":"<feature>","description":"<benefit>","icon":"shield"}]}`,
+      social_proof: `{"title":"What Our Customers Say","testimonials":[{"name":"<Name>","role":"<Title>","company":"<Co>","quote":"<testimonial>","rating":5},{"name":"<Name>","role":"<Title>","company":"<Co>","quote":"<testimonial>","rating":5}]}`,
+      pricing: `{"title":"Simple, Transparent Pricing","plans":[{"name":"Starter","price":"$29","period":"month","features":["<f>","<f>","<f>"],"highlighted":false,"ctaText":"Get Started"},{"name":"Pro","price":"$79","period":"month","features":["<f>","<f>","<f>","<f>"],"highlighted":true,"ctaText":"Start Free Trial"}]}`,
+      faq: `{"title":"Frequently Asked Questions","faqs":[{"question":"<question>","answer":"<answer>"},{"question":"<question>","answer":"<answer>"},{"question":"<question>","answer":"<answer>"}]}`,
+      cta: `{"headline":"<action headline>","subheadline":"<urgency or value>","ctaText":"<button text>","ctaUrl":"#"}`,
+      optin: `{"formTitle":"<compelling form headline>","formSubtitle":"<value prop>","buttonText":"<CTA text>","fields":[{"label":"Email Address","type":"email","placeholder":"you@example.com"}]}`,
+      video: `{"videoUrl":"","videoTitle":"<compelling video title>"}`,
+    };
+
+    const prompt = `You are an expert conversion copywriter. Rewrite the content for a single "${sectionType}" section on a landing page.
+
+BUSINESS:
+- Name: ${business.name}
+- Industry: ${business.industry}
+- Description: ${business.description}
+- Target Audience: ${business.targetAudience ?? "General audience"}
+
+FUNNEL: ${funnel.name} (${FUNNEL_TEMPLATES[funnel.templateType]?.label ?? funnel.templateType})
+PAGE: ${page.name}
+
+CURRENT CONTENT:
+${JSON.stringify(currentSection?.content ?? {}, null, 2)}
+${customInstruction ? `\nCUSTOM INSTRUCTION: ${customInstruction}` : ""}
+
+Return ONLY a valid JSON object for the "content" field — no markdown, no explanation, no wrapper.
+Reference structure: ${contentSchemas[sectionType] ?? "{}"}
+
+Rules:
+- Tailor copy specifically to ${business.name} and their target audience
+${customInstruction ? `- Apply this instruction: ${customInstruction}` : "- Make copy compelling and conversion-focused"}
+- Return valid JSON content object only`;
+
+    let fullContent = "";
+    const stream = await openai.chat.completions.create({
+      model: "gpt-4.1",
+      max_completion_tokens: 2048,
+      messages: [{ role: "user", content: prompt }],
+      stream: true,
+    });
+
+    for await (const chunk of stream) {
+      const delta = chunk.choices[0]?.delta?.content;
+      if (delta) {
+        fullContent += delta;
+        res.write(`data: ${JSON.stringify({ content: delta })}\n\n`);
+      }
+    }
+
+    try {
+      const jsonStart = fullContent.indexOf("{");
+      const jsonEnd = fullContent.lastIndexOf("}") + 1;
+      const newContent = JSON.parse(fullContent.slice(jsonStart, jsonEnd));
+      const updatedSections = existingSections.map((s) => s.id === sectionId ? { ...s, content: newContent } : s);
+      const [updated] = await db
+        .update(funnelPagesTable)
+        .set({ sections: updatedSections })
+        .where(and(eq(funnelPagesTable.id, pageId), eq(funnelPagesTable.funnelId, funnelId)))
+        .returning();
+      res.write(`data: ${JSON.stringify({ done: true, newContent, page: updated })}\n\n`);
+    } catch {
+      res.write(`data: ${JSON.stringify({ done: true, parseError: true })}\n\n`);
+    }
+    res.end();
+  } catch (err) {
+    req.log.error({ err }, "Failed to generate section copy");
+    res.write(`data: ${JSON.stringify({ error: "Generation failed" })}\n\n`);
+    res.end();
+  }
+});
+
+// ---------------------------------------------------------------------------
+// AI generate full page copy (SSE)
+// ---------------------------------------------------------------------------
+
 router.post("/businesses/:businessId/funnels/:funnelId/pages/:id/generate", async (req, res) => {
   const parsed = GenerateFunnelPageParams.safeParse({
     businessId: req.params.businessId,
@@ -517,6 +631,7 @@ router.post("/businesses/:businessId/funnels/:funnelId/pages/:id/generate", asyn
   if (!parsed.success) return res.status(400).json({ error: "Invalid params" });
 
   const { businessId, funnelId, id } = parsed.data;
+  const { customInstruction } = (req.body ?? {}) as { customInstruction?: string };
 
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
@@ -558,7 +673,7 @@ BUSINESS:
 
 FUNNEL: ${funnel.name} (${FUNNEL_TEMPLATES[funnel.templateType]?.label ?? funnel.templateType})
 PAGE: ${page.name} (type: ${page.type})
-
+${customInstruction ? `\nCUSTOM INSTRUCTION: ${customInstruction}\n` : ""}
 Generate copy for a JSON array of sections. Return ONLY a valid JSON array, no markdown, no explanation.
 Each section must exactly match this structure (replace placeholder values with real copy):
 
@@ -568,7 +683,7 @@ Each section must exactly match this structure (replace placeholder values with 
 
 Rules:
 - Write copy specifically tailored to ${business.name} and their audience
-- Each headline should be benefit-focused and attention-grabbing
+${customInstruction ? `- Apply this custom instruction throughout: ${customInstruction}` : "- Each headline should be benefit-focused and attention-grabbing"}
 - CTAs should be action-oriented and specific
 - Testimonials should feel genuine and specific
 - Features/benefits should address pain points of the target audience

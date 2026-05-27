@@ -24,7 +24,7 @@ import {
   Dumbbell, Scissors, Camera, Monitor, Briefcase,
   HandHeart, Wrench, BedDouble, Landmark, School,
   Gem, PawPrint, Paintbrush, Car, Smile,
-  Leaf, Mic, Link2, Truck, Building2, Signal, Plane,
+  Leaf, Mic, Link2, Truck, Building2, Signal, Plane, Sparkles,
 } from "lucide-react";
 import { format } from "date-fns";
 import ReactMarkdown from "react-markdown";
@@ -837,6 +837,7 @@ function PageEditor({ businessId, funnel, page }: { businessId: number; funnel: 
   const [generatedText, setGeneratedText] = useState("");
   const [expandedSection, setExpandedSection] = useState<string | null>(sections[0]?.id ?? null);
   const [isDirty, setIsDirty] = useState(false);
+  const [pageInstruction, setPageInstruction] = useState("");
 
   const updateMutation = useUpdateFunnelPage({
     onSuccess: () => {
@@ -860,6 +861,7 @@ function PageEditor({ businessId, funnel, page }: { businessId: number; funnel: 
       const resp = await fetch(`${BASE}/api/businesses/${businessId}/funnels/${funnel.id}/pages/${page.id}/generate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ customInstruction: pageInstruction.trim() || undefined }),
       });
 
       if (!resp.body) throw new Error("No stream");
@@ -909,27 +911,38 @@ function PageEditor({ businessId, funnel, page }: { businessId: number; funnel: 
   return (
     <div className="space-y-4">
       {/* Page action bar */}
-      <div className="flex items-center justify-between p-4 rounded-lg border border-border bg-card">
-        <div>
-          <p className="font-semibold font-mono text-sm">{page.name}</p>
-          <p className="text-xs text-muted-foreground">{sections.length} sections</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-2"
-            disabled={isGenerating}
-            onClick={handleGenerate}
-          >
-            {isGenerating ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Generating...</> : <><Wand2 className="h-3.5 w-3.5 text-primary" /> Generate with AI</>}
-          </Button>
-          {isDirty && (
-            <Button size="sm" className="gap-2" disabled={updateMutation.isPending} onClick={handleSave}>
-              {updateMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-              Save
+      <div className="rounded-lg border border-border bg-card overflow-hidden">
+        <div className="flex items-center justify-between px-4 py-3">
+          <div>
+            <p className="font-semibold font-mono text-sm">{page.name}</p>
+            <p className="text-xs text-muted-foreground">{sections.length} sections</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2"
+              disabled={isGenerating}
+              onClick={handleGenerate}
+            >
+              {isGenerating ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Generating...</> : <><Wand2 className="h-3.5 w-3.5 text-primary" /> Generate All</>}
             </Button>
-          )}
+            {isDirty && (
+              <Button size="sm" className="gap-2" disabled={updateMutation.isPending} onClick={handleSave}>
+                {updateMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                Save
+              </Button>
+            )}
+          </div>
+        </div>
+        <div className="flex items-center gap-2 px-4 pb-3 border-t border-border/50 pt-3">
+          <Sparkles className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+          <Input
+            placeholder="Page-level AI instruction (optional) — e.g. 'Use a casual tone', 'Target enterprise buyers'"
+            value={pageInstruction}
+            onChange={(e) => setPageInstruction(e.target.value)}
+            className="text-xs h-8 font-mono flex-1"
+          />
         </div>
       </div>
 
@@ -952,6 +965,9 @@ function PageEditor({ businessId, funnel, page }: { businessId: number; funnel: 
           expanded={expandedSection === section.id}
           onToggle={() => setExpandedSection(expandedSection === section.id ? null : section.id)}
           onChange={(content) => updateSection(section.id, content)}
+          businessId={businessId}
+          funnelId={funnel.id}
+          pageId={page.id}
         />
       ))}
 
@@ -977,31 +993,138 @@ function PageEditor({ businessId, funnel, page }: { businessId: number; funnel: 
 // Section editor
 // ---------------------------------------------------------------------------
 
-function SectionEditor({ section, expanded, onToggle, onChange }: {
+function SectionEditor({ section, expanded, onToggle, onChange, businessId, funnelId, pageId }: {
   section: FunnelSection;
   expanded: boolean;
   onToggle: () => void;
   onChange: (content: Partial<FunnelSection["content"]>) => void;
+  businessId: number;
+  funnelId: number;
+  pageId: number;
 }) {
   const c = section.content;
   const colorClass = SECTION_COLORS[section.type] ?? "bg-muted text-muted-foreground border-border";
   const label = SECTION_LABELS[section.type] ?? section.type;
+  const [showAI, setShowAI] = useState(false);
+  const [aiInstruction, setAiInstruction] = useState("");
+  const [isRegenerating, setIsRegenerating] = useState(false);
+  const [rewritePreview, setRewritePreview] = useState("");
+  const { toast } = useToast();
+
+  const handleSectionRewrite = async () => {
+    setIsRegenerating(true);
+    setRewritePreview("");
+    try {
+      const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
+      const resp = await fetch(
+        `${BASE}/api/businesses/${businessId}/funnels/${funnelId}/pages/${pageId}/sections/generate`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            sectionType: section.type,
+            sectionId: section.id,
+            customInstruction: aiInstruction.trim() || undefined,
+          }),
+        }
+      );
+      if (!resp.body) throw new Error("No stream");
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let accumulated = "";
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          try {
+            const parsed = JSON.parse(line.slice(6));
+            if (parsed.content) { accumulated += parsed.content; setRewritePreview(accumulated); }
+            if (parsed.done && parsed.newContent) {
+              onChange(parsed.newContent);
+              setRewritePreview("");
+              setShowAI(false);
+              toast({ title: "Section rewritten!", description: `${label} updated with fresh AI copy.` });
+            }
+            if (parsed.error) throw new Error(parsed.error);
+          } catch { /* ignore chunk parse errors */ }
+        }
+      }
+    } catch (err) {
+      toast({ title: "Rewrite failed", description: String(err), variant: "destructive" });
+    } finally {
+      setIsRegenerating(false);
+    }
+  };
 
   return (
     <div className="rounded-lg border border-border bg-card overflow-hidden">
-      <button
-        className="w-full flex items-center justify-between p-4 text-left hover:bg-muted/30 transition-colors"
-        onClick={onToggle}
-      >
-        <div className="flex items-center gap-3">
-          <Badge className={`text-[10px] font-mono border ${colorClass} px-2 py-0.5`}>{label}</Badge>
-          <span className="text-sm text-muted-foreground font-mono">{getSectionPreview(section)}</span>
+      {/* Header row */}
+      <div className="flex items-center px-4 py-3 gap-2">
+        <button
+          className="flex-1 flex items-center gap-3 text-left hover:opacity-80 transition-opacity min-w-0"
+          onClick={onToggle}
+        >
+          <Badge className={`text-[10px] font-mono border shrink-0 ${colorClass} px-2 py-0.5`}>{label}</Badge>
+          <span className="text-sm text-muted-foreground font-mono truncate">{getSectionPreview(section)}</span>
+        </button>
+        <div className="flex items-center gap-1 shrink-0">
+          <button
+            title="Rewrite this section with AI"
+            onClick={() => setShowAI((v) => !v)}
+            className={`p-1.5 rounded-md transition-colors ${showAI ? "bg-primary/15 text-primary" : "hover:bg-muted text-muted-foreground hover:text-foreground"}`}
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+          </button>
+          <button onClick={onToggle} className="p-1.5 rounded-md hover:bg-muted transition-colors text-muted-foreground">
+            {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          </button>
         </div>
-        {expanded ? <ChevronUp className="h-4 w-4 text-muted-foreground shrink-0" /> : <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />}
-      </button>
+      </div>
+
+      {/* AI rewrite panel */}
+      {showAI && (
+        <div className="px-4 pb-4 border-t border-border bg-primary/[0.03] space-y-2 pt-3">
+          <p className="text-[10px] font-mono text-primary uppercase tracking-wider flex items-center gap-1.5">
+            <Sparkles className="h-3 w-3" /> AI Rewrite
+          </p>
+          <Textarea
+            placeholder="Custom instruction (optional) — e.g. 'Make it more urgent', 'Focus on cost savings', 'Use bullet points', 'Casual tone'"
+            value={aiInstruction}
+            onChange={(e) => setAiInstruction(e.target.value)}
+            rows={2}
+            className="text-xs font-mono min-h-[52px] resize-none"
+            onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) handleSectionRewrite(); }}
+          />
+          {rewritePreview && (
+            <div className="p-2 rounded border border-primary/20 bg-primary/5 font-mono text-[11px] text-muted-foreground max-h-20 overflow-hidden line-clamp-4 whitespace-pre-wrap">
+              {rewritePreview}
+            </div>
+          )}
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              className="gap-2 flex-1"
+              disabled={isRegenerating}
+              onClick={handleSectionRewrite}
+            >
+              {isRegenerating
+                ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Rewriting...</>
+                : <><Sparkles className="h-3.5 w-3.5" /> Rewrite Section</>}
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setShowAI(false)} className="text-muted-foreground">
+              Cancel
+            </Button>
+          </div>
+        </div>
+      )}
 
       {expanded && (
-        <div className="p-4 pt-0 border-t border-border space-y-3">
+        <div className="p-4 border-t border-border space-y-3">
           {/* Hero / CTA fields */}
           {(section.type === "hero" || section.type === "cta") && (
             <>

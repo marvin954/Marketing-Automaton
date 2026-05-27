@@ -72,3 +72,9 @@ export const GenerateFunnelPageParams = zod.object({
   funnelId: zod.coerce.number(),
   id: zod.coerce.number(),
 });
+
+export const GenerateSectionParams = zod.object({
+  businessId: zod.coerce.number(),
+  funnelId: zod.coerce.number(),
+  pageId: zod.coerce.number(),
+});
