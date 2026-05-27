@@ -303,6 +303,60 @@ const FUNNEL_TEMPLATES: Record<string, { label: string; pages: TemplatePageDef[]
       { name: "Appointment Confirmed", type: "confirmation", sectionTypes: ["hero", "cta"] },
     ],
   },
+  lawn_service: {
+    label: "Lawn & Landscaping",
+    pages: [
+      { name: "Service Landing", type: "landing", sectionTypes: ["hero", "features", "social_proof", "pricing", "cta"] },
+      { name: "Free Estimate", type: "estimate", sectionTypes: ["hero", "optin"] },
+    ],
+  },
+  podcast: {
+    label: "Podcast / Audio Show",
+    pages: [
+      { name: "Show Landing", type: "landing", sectionTypes: ["hero", "video", "features", "social_proof", "cta"] },
+      { name: "Subscribe & Listen", type: "subscribe", sectionTypes: ["hero", "optin"] },
+    ],
+  },
+  blockchain: {
+    label: "Blockchain / Web3 Infrastructure",
+    pages: [
+      { name: "Protocol Landing", type: "landing", sectionTypes: ["hero", "features", "social_proof", "pricing", "faq", "cta"] },
+      { name: "Developer Signup", type: "signup", sectionTypes: ["hero", "optin"] },
+      { name: "Welcome", type: "welcome", sectionTypes: ["hero", "features", "cta"] },
+    ],
+  },
+  courier: {
+    label: "Courier / Delivery Service",
+    pages: [
+      { name: "Service Landing", type: "landing", sectionTypes: ["hero", "features", "pricing", "social_proof", "faq", "cta"] },
+      { name: "Shipment Quote", type: "quote", sectionTypes: ["hero", "optin"] },
+      { name: "Booking Confirmed", type: "confirmation", sectionTypes: ["hero", "cta"] },
+    ],
+  },
+  b2b: {
+    label: "B2B / Enterprise Sales",
+    pages: [
+      { name: "Enterprise Landing", type: "landing", sectionTypes: ["hero", "features", "social_proof", "pricing", "faq", "cta"] },
+      { name: "Demo Request", type: "demo", sectionTypes: ["hero", "optin"] },
+      { name: "Onboarding Welcome", type: "welcome", sectionTypes: ["hero", "features", "cta"] },
+    ],
+  },
+  telecom: {
+    label: "Telecom / ISP Provider",
+    pages: [
+      { name: "Provider Landing", type: "landing", sectionTypes: ["hero", "features", "pricing", "social_proof", "faq", "cta"] },
+      { name: "Plan Selection", type: "plans", sectionTypes: ["pricing", "optin"] },
+      { name: "Account Setup", type: "setup", sectionTypes: ["hero", "cta"] },
+    ],
+  },
+  travel: {
+    label: "Travel / Tourism",
+    pages: [
+      { name: "Destination Landing", type: "landing", sectionTypes: ["hero", "video", "features", "social_proof", "pricing", "cta"] },
+      { name: "Trip Inquiry", type: "inquiry", sectionTypes: ["hero", "optin"] },
+      { name: "Booking Confirmed", type: "confirmation", sectionTypes: ["hero", "cta"] },
+    ],
+  },
 };
 
 function makeEmptySection(type: SectionType, index: number) {
