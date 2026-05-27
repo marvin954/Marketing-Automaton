@@ -5,3 +5,4 @@ export * from "./keywords";
 export * from "./competitors";
 export * from "./conversations";
 export * from "./messages";
+export * from "./funnels";

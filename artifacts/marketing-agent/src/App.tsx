@@ -14,6 +14,7 @@ import Analytics from "@/pages/analytics";
 import SeoHub from "@/pages/seo";
 import Competitors from "@/pages/competitors";
 import Assistant from "@/pages/assistant";
+import Funnels from "@/pages/funnels";
 
 const queryClient = new QueryClient();
 
@@ -28,6 +29,7 @@ function Router() {
       <Route path="/seo" component={SeoHub} />
       <Route path="/competitors" component={Competitors} />
       <Route path="/assistant" component={Assistant} />
+      <Route path="/funnels" component={Funnels} />
       <Route component={NotFound} />
     </Switch>
   );

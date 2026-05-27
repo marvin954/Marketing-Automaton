@@ -7,6 +7,7 @@ import analyticsRouter from "./analytics";
 import seoRouter from "./seo";
 import competitorsRouter from "./competitors";
 import openaiRouter from "./openai";
+import funnelsRouter from "./funnels";
 
 const router: IRouter = Router();
 
@@ -18,5 +19,6 @@ router.use(analyticsRouter);
 router.use(seoRouter);
 router.use(competitorsRouter);
 router.use("/openai", openaiRouter);
+router.use(funnelsRouter);
 
 export default router;

@@ -4,7 +4,7 @@ import { useListBusinesses } from "@workspace/api-client-react";
 import {
   LayoutDashboard, Building2, PenTool, Megaphone, BarChart3,
   Search, Crosshair, BotMessageSquare, ChevronLeft, ChevronRight,
-  ChevronsUpDown, Check,
+  ChevronsUpDown, Check, Layers,
 } from "lucide-react";
 import { ReactNode, useState } from "react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
   { name: "Businesses", href: "/businesses", icon: Building2 },
+  { name: "Funnels", href: "/funnels", icon: Layers },
   { name: "Content", href: "/content", icon: PenTool },
   { name: "Campaigns", href: "/campaigns", icon: Megaphone },
   { name: "Analytics", href: "/analytics", icon: BarChart3 },
