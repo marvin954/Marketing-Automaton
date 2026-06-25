@@ -192,7 +192,7 @@ export default function Assistant() {
                           {msg.role === 'user' ? <User className="w-4 h-4" /> : <BotMessageSquare className="w-4 h-4" />}
                         </div>
                         <div className={`max-w-[80%] rounded-lg p-4 font-sans text-sm ${msg.role === 'user' ? 'bg-secondary text-secondary-foreground' : 'bg-muted/30 border border-muted'}`}>
-                          <ReactMarkdown className="prose prose-sm prose-invert max-w-none">{msg.content}</ReactMarkdown>
+                          <div className="prose prose-sm prose-invert max-w-none"><ReactMarkdown>{msg.content}</ReactMarkdown></div>
                           <div className={`text-[10px] font-mono mt-2 opacity-50 ${msg.role === 'user' ? 'text-right' : ''}`}>
                             {format(new Date(msg.createdAt), 'HH:mm')}
                           </div>
@@ -206,7 +206,7 @@ export default function Assistant() {
                         </div>
                         <div className="max-w-[80%] rounded-lg p-4 font-sans text-sm bg-muted/30 border border-muted border-primary/50 shadow-[0_0_15px_rgba(var(--primary),0.1)]">
                           {streamingMessage ? (
-                            <ReactMarkdown className="prose prose-sm prose-invert max-w-none">{streamingMessage}</ReactMarkdown>
+                            <div className="prose prose-sm prose-invert max-w-none"><ReactMarkdown>{streamingMessage}</ReactMarkdown></div>
                           ) : (
                             <span className="flex items-center gap-1 text-primary animate-pulse">
                               <span className="w-1.5 h-1.5 bg-primary rounded-full"></span>

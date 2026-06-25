@@ -93,7 +93,8 @@ export default function ContentStudio() {
   };
 
   const handleDelete = (id: number) => {
-    deleteMutation.mutate({ id }, {
+    if (!activeBusinessId) return;
+    deleteMutation.mutate({ businessId: activeBusinessId, id }, {
       onSuccess: () => {
         toast({ title: "Content deleted" });
         queryClient.invalidateQueries({ queryKey: getFetchContentQueryKey(activeBusinessId || 0) });
