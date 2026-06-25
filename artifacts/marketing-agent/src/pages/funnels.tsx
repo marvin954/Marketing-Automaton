@@ -26,7 +26,7 @@ import {
   HandHeart, Wrench, BedDouble, Landmark, School,
   Gem, PawPrint, Paintbrush, Car, Smile,
   Leaf, Mic, Link2, Truck, Building2, Signal, Plane, Sparkles,
-  Globe, Copy, ExternalLink,
+  Globe, Copy, ExternalLink, Eye,
 } from "lucide-react";
 import { format } from "date-fns";
 import ReactMarkdown from "react-markdown";
@@ -844,6 +844,9 @@ function PageEditor({ businessId, funnel, page }: { businessId: number; funnel: 
   const [isDirty, setIsDirty] = useState(false);
   const [pageInstruction, setPageInstruction] = useState("");
   const [showPublish, setShowPublish] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState("");
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
 
   const isDirtyRef = useRef(false);
   const sectionsRef = useRef<FunnelSection[]>(sections);
@@ -880,6 +883,28 @@ function PageEditor({ businessId, funnel, page }: { businessId: number; funnel: 
       await updateMutation.mutateAsync({ businessId, funnelId: funnel.id, id: page.id, body: { sections } });
       toast({ title: "Saved!", description: "All sections have been saved." });
     } catch { /* error toast handled by mutation */ }
+  };
+
+  const handlePreview = async () => {
+    setIsPreviewLoading(true);
+    try {
+      const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
+      const resp = await fetch(`${BASE}/api/funnel-pages/${page.id}/preview`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sections }),
+      });
+      if (!resp.ok) throw new Error("Preview failed");
+      const html = await resp.text();
+      const blob = new Blob([html], { type: "text/html" });
+      const url = URL.createObjectURL(blob);
+      setPreviewUrl(url);
+      setShowPreview(true);
+    } catch {
+      toast({ title: "Preview failed", variant: "destructive" });
+    } finally {
+      setIsPreviewLoading(false);
+    }
   };
 
   // Debounced auto-save: fires 1.5s after the last edit
@@ -993,6 +1018,16 @@ function PageEditor({ businessId, funnel, page }: { businessId: number; funnel: 
                   ? <><Save className="h-3.5 w-3.5" /> Save</>
                   : <><Check className="h-3.5 w-3.5" /> Saved</>}
             </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="gap-2"
+              disabled={isPreviewLoading}
+              onClick={handlePreview}
+            >
+              {isPreviewLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Eye className="h-3.5 w-3.5" />}
+              Preview
+            </Button>
             {page.publicSlug ? (
               <Button
                 size="sm"
@@ -1090,6 +1125,41 @@ function PageEditor({ businessId, funnel, page }: { businessId: number; funnel: 
               >
                 {unpublishMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Globe className="h-3.5 w-3.5" />}
                 Unpublish
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Preview dialog */}
+      <Dialog open={showPreview} onOpenChange={(open) => { if (!open) setShowPreview(false); }}>
+        <DialogContent className="sm:max-w-[900px] bg-background/95 backdrop-blur border-primary/20 p-0">
+          <DialogHeader className="px-6 pt-6 pb-2">
+            <DialogTitle className="font-mono uppercase tracking-wider text-sm flex items-center gap-2">
+              <Eye className="h-4 w-4 text-primary" /> Page Preview
+            </DialogTitle>
+          </DialogHeader>
+          <div className="px-6 pb-6">
+            <div className="rounded-lg border border-border overflow-hidden" style={{ height: "500px" }}>
+              {previewUrl ? (
+                <iframe
+                  src={previewUrl}
+                  className="w-full h-full"
+                  title="Page Preview"
+                  sandbox="allow-scripts"
+                />
+              ) : (
+                <div className="flex items-center justify-center h-full text-muted-foreground font-mono text-sm">
+                  Loading preview...
+                </div>
+              )}
+            </div>
+            <div className="flex items-center justify-between mt-4">
+              <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">
+                This is how your page will look when published. Opt-in forms are disabled in preview.
+              </p>
+              <Button size="sm" variant="outline" className="gap-2" onClick={() => setShowPreview(false)}>
+                Close
               </Button>
             </div>
           </div>

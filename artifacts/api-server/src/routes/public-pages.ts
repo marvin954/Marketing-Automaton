@@ -1,6 +1,6 @@
 import { db } from "@workspace/db";
 import { funnelPagesTable, funnelsTable, businessesTable } from "@workspace/db";
-import { eq, and } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import type { Request, Response } from "express";
 
 // ---------------------------------------------------------------------------
@@ -34,13 +34,80 @@ export async function renderPublicPage(req: Request, res: Response) {
     content: Record<string, any>;
   }>;
 
-  const html = `<!DOCTYPE html>
+  const html = buildPageHtml({
+    pageName: page.name,
+    businessName: business?.name ?? "OMNI MARK",
+    description: funnel?.description ?? "",
+    sections,
+  });
+
+  res.setHeader("Content-Type", "text/html");
+  res.send(html);
+}
+
+// ---------------------------------------------------------------------------
+// Preview endpoint — renders current draft sections without publishing
+// ---------------------------------------------------------------------------
+
+export async function previewPage(req: Request, res: Response) {
+  const pageId = Number(req.params.id);
+  if (Number.isNaN(pageId)) return res.status(400).json({ error: "Invalid page ID" });
+
+  const [page] = await db
+    .select()
+    .from(funnelPagesTable)
+    .where(eq(funnelPagesTable.id, pageId));
+
+  if (!page) return res.status(404).json({ error: "Page not found" });
+
+  const [funnel] = await db
+    .select()
+    .from(funnelsTable)
+    .where(eq(funnelsTable.id, page.funnelId));
+
+  const [business] = await db
+    .select()
+    .from(businessesTable)
+    .where(eq(businessesTable.id, funnel?.businessId ?? 0));
+
+  const sections = (req.body.sections ?? page.sections ?? []) as Array<{
+    id: string;
+    type: string;
+    content: Record<string, any>;
+  }>;
+
+  const html = buildPageHtml({
+    pageName: page.name,
+    businessName: business?.name ?? "OMNI MARK",
+    description: funnel?.description ?? "",
+    sections,
+    previewBanner: true,
+  });
+
+  res.setHeader("Content-Type", "text/html");
+  res.send(html);
+}
+
+// ---------------------------------------------------------------------------
+// Shared HTML builder
+// ---------------------------------------------------------------------------
+
+interface PageHtmlParams {
+  pageName: string;
+  businessName: string;
+  description: string;
+  sections: Array<{ id?: string; type: string; content: Record<string, any> }>;
+  previewBanner?: boolean;
+}
+
+function buildPageHtml({ pageName, businessName, description, sections, previewBanner }: PageHtmlParams): string {
+  return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${escapeHtml(page.name)} | ${escapeHtml(business?.name ?? "OMNI MARK")}</title>
-  <meta name="description" content="${escapeHtml(funnel?.description ?? "")}">
+  <title>${escapeHtml(pageName)} | ${escapeHtml(businessName)}</title>
+  <meta name="description" content="${escapeHtml(description)}">
   <style>
     :root {
       --bg: #0a0a0a;
@@ -76,6 +143,18 @@ export async function renderPublicPage(req: Request, res: Response) {
     .container { max-width: var(--max-w); margin: 0 auto; padding: 0 1.5rem; }
     section { padding: 4rem 0; }
     section + section { border-top: 1px solid var(--border); }
+
+    /* Preview banner */
+    .preview-banner {
+      background: linear-gradient(90deg, #f97316, #ea580c);
+      color: #fff;
+      text-align: center;
+      padding: 0.5rem 1rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      font-family: var(--font-mono);
+    }
 
     /* Hero */
     .hero { text-align: center; padding: 6rem 0 4rem; }
@@ -231,17 +310,15 @@ export async function renderPublicPage(req: Request, res: Response) {
   </style>
 </head>
 <body>
+  ${previewBanner ? '<div class="preview-banner">PREVIEW MODE — This page has not been published yet</div>' : ''}
   ${sections.map(renderSection).join("\n")}
   <footer class="footer">
     <div class="container">
-      <p>Powered by ${escapeHtml(business?.name ?? "OMNI MARK")}</p>
+      <p>Powered by ${escapeHtml(businessName)}</p>
     </div>
   </footer>
 </body>
 </html>`;
-
-  res.setHeader("Content-Type", "text/html");
-  res.send(html);
 }
 
 function renderSection(s: { type: string; content: Record<string, any> }): string {
