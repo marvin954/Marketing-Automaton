@@ -680,7 +680,9 @@ export default function Funnels() {
             <FunnelCard
               key={funnel.id}
               funnel={funnel}
-              onClick={() => { setSelectedFunnelId(funnel.id); setView("detail"); }}
+              onOpen={() => { setSelectedFunnelId(funnel.id); setView("detail"); }}
+              onPreview={() => { setSelectedFunnelId(funnel.id); setView("detail"); }}
+              onPublish={() => { setSelectedFunnelId(funnel.id); setView("detail"); }}
             />
           ))}
         </div>
@@ -693,14 +695,11 @@ export default function Funnels() {
 // Funnel card (list item)
 // ---------------------------------------------------------------------------
 
-function FunnelCard({ funnel, onClick }: { funnel: FunnelRecord; onClick: () => void }) {
+function FunnelCard({ funnel, onOpen, onPreview, onPublish }: { funnel: FunnelRecord; onOpen: () => void; onPreview: () => void; onPublish: () => void }) {
   const tpl = FUNNEL_TEMPLATES.find((t) => t.key === funnel.templateType);
   const Icon = tpl?.icon ?? Layers;
   return (
-    <button
-      onClick={onClick}
-      className="text-left p-5 rounded-lg border border-border bg-card hover:bg-muted/40 transition-colors group"
-    >
+    <div className="text-left p-5 rounded-lg border border-border bg-card hover:bg-muted/40 transition-colors group relative">
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="flex items-center gap-3">
           <div className={`p-2 rounded-md ${tpl?.bg ?? "bg-muted"}`}>
@@ -711,14 +710,40 @@ function FunnelCard({ funnel, onClick }: { funnel: FunnelRecord; onClick: () => 
             {funnel.description && <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{funnel.description}</p>}
           </div>
         </div>
-        <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors mt-1 shrink-0" />
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-7 gap-1 text-xs text-muted-foreground hover:text-foreground"
+          onClick={(e) => { e.stopPropagation(); onOpen(); }}
+        >
+          Open <ChevronRight className="h-3 w-3" />
+        </Button>
       </div>
       <div className="flex items-center gap-2 flex-wrap">
         {tpl && <Badge variant="outline" className={`text-[10px] font-mono ${tpl.color} border-current/30`}>{tpl.label}</Badge>}
         <Badge variant="outline" className="text-[10px] font-mono capitalize">{funnel.status}</Badge>
         <span className="text-[10px] text-muted-foreground ml-auto">{format(new Date(funnel.createdAt), "MMM d, yyyy")}</span>
       </div>
-    </button>
+      {/* Action buttons */}
+      <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border/50">
+        <Button
+          size="sm"
+          variant="outline"
+          className="gap-2 text-xs h-7"
+          onClick={(e) => { e.stopPropagation(); onPreview(); }}
+        >
+          <Eye className="h-3 w-3" /> Preview
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          className="gap-2 text-xs h-7"
+          onClick={(e) => { e.stopPropagation(); onPublish(); }}
+        >
+          <Globe className="h-3 w-3" /> Publish
+        </Button>
+      </div>
+    </div>
   );
 }
 
@@ -735,6 +760,30 @@ function FunnelDetail({ businessId, funnelId, onBack, onDelete }: {
   const { data: funnel, isLoading } = useGetFunnel(businessId, funnelId);
   const [selectedPageId, setSelectedPageId] = useState<number | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState("");
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
+  const [showPublish, setShowPublish] = useState(false);
+
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const publishMutation = usePublishPage({
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: getGetFunnelQueryKey(businessId, funnelId) });
+      toast({ title: "Published!", description: "Page is now live at a public URL." });
+      setShowPublish(true);
+    },
+    onError: () => toast({ title: "Publish failed", variant: "destructive" }),
+  });
+
+  const unpublishMutation = useUnpublishPage({
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: getGetFunnelQueryKey(businessId, funnelId) });
+      toast({ title: "Unpublished" });
+      setShowPublish(false);
+    },
+  });
 
   if (isLoading) {
     return <div className="space-y-4"><Skeleton className="h-10 w-48" /><Skeleton className="h-32 w-full" /><Skeleton className="h-64 w-full" /></div>;
@@ -743,6 +792,29 @@ function FunnelDetail({ businessId, funnelId, onBack, onDelete }: {
 
   const tpl = FUNNEL_TEMPLATES.find((t) => t.key === funnel.templateType);
   const selectedPage = funnel.pages.find((p) => p.id === selectedPageId) ?? funnel.pages[0] ?? null;
+
+  const handlePreview = async () => {
+    if (!selectedPage) return;
+    setIsPreviewLoading(true);
+    try {
+      const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
+      const resp = await fetch(`${BASE}/api/funnel-pages/${selectedPage.id}/preview`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sections: selectedPage.sections }),
+      });
+      if (!resp.ok) throw new Error("Preview failed");
+      const html = await resp.text();
+      const blob = new Blob([html], { type: "text/html" });
+      const url = URL.createObjectURL(blob);
+      setPreviewUrl(url);
+      setShowPreview(true);
+    } catch {
+      toast({ title: "Preview failed", variant: "destructive" });
+    } finally {
+      setIsPreviewLoading(false);
+    }
+  };
 
   return (
     <div className="max-w-5xl mx-auto">
@@ -772,7 +844,7 @@ function FunnelDetail({ businessId, funnelId, onBack, onDelete }: {
       </div>
 
       {/* Page stepper */}
-      <div className="flex items-center gap-2 mb-8 overflow-x-auto pb-2">
+      <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-2">
         {funnel.pages.map((page, i) => {
           const isSelected = page.id === (selectedPage?.id);
           const hasContent = (page.sections as FunnelSection[]).some((s) => {
@@ -803,6 +875,43 @@ function FunnelDetail({ businessId, funnelId, onBack, onDelete }: {
         })}
       </div>
 
+      {/* Page-level action bar (visible right after selecting a page) */}
+      {selectedPage && (
+        <div className="flex items-center gap-2 mb-4">
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-2"
+            disabled={isPreviewLoading}
+            onClick={handlePreview}
+          >
+            {isPreviewLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Eye className="h-3.5 w-3.5" />}
+            Preview
+          </Button>
+          {selectedPage.publicSlug ? (
+            <Button
+              size="sm"
+              variant="outline"
+              className="gap-2 text-green-400 border-green-400/30"
+              onClick={() => setShowPublish(true)}
+            >
+              <Globe className="h-3.5 w-3.5" /> Published
+            </Button>
+          ) : (
+            <Button
+              size="sm"
+              variant="outline"
+              className="gap-2"
+              disabled={publishMutation.isPending}
+              onClick={() => publishMutation.mutate({ businessId, funnelId: funnel.id, id: selectedPage.id })}
+            >
+              {publishMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Globe className="h-3.5 w-3.5" />}
+              Publish
+            </Button>
+          )}
+        </div>
+      )}
+
       {/* Page editor */}
       {selectedPage && (
         <PageEditor
@@ -812,6 +921,103 @@ function FunnelDetail({ businessId, funnelId, onBack, onDelete }: {
           key={selectedPage.id}
         />
       )}
+
+      {/* Preview dialog */}
+      <Dialog open={showPreview} onOpenChange={(open) => { if (!open) setShowPreview(false); }}>
+        <DialogContent className="sm:max-w-[900px] bg-background/95 backdrop-blur border-primary/20 p-0">
+          <DialogHeader className="px-6 pt-6 pb-2">
+            <DialogTitle className="font-mono uppercase tracking-wider text-sm flex items-center gap-2">
+              <Eye className="h-4 w-4 text-primary" /> Page Preview
+            </DialogTitle>
+          </DialogHeader>
+          <div className="px-6 pb-6">
+            <div className="rounded-lg border border-border overflow-hidden" style={{ height: "500px" }}>
+              {previewUrl ? (
+                <iframe
+                  src={previewUrl}
+                  className="w-full h-full"
+                  title="Page Preview"
+                  sandbox="allow-scripts"
+                />
+              ) : (
+                <div className="flex items-center justify-center h-full text-muted-foreground font-mono text-sm">
+                  Loading preview...
+                </div>
+              )}
+            </div>
+            <div className="flex items-center justify-between mt-4">
+              <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">
+                This is how your page will look when published. Opt-in forms are disabled in preview.
+              </p>
+              <Button size="sm" variant="outline" className="gap-2" onClick={() => setShowPreview(false)}>
+                Close
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Publish dialog */}
+      <Dialog open={showPublish} onOpenChange={setShowPublish}>
+        <DialogContent className="sm:max-w-[420px] bg-background/95 backdrop-blur border-primary/20">
+          <DialogHeader>
+            <DialogTitle className="font-mono uppercase tracking-wider text-sm flex items-center gap-2">
+              <Globe className="h-4 w-4 text-green-400" /> Published Page
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div className="rounded-lg border border-border bg-muted/20 p-4">
+              <p className="text-[10px] uppercase tracking-wider font-mono text-muted-foreground mb-1">Public URL</p>
+              <div className="flex items-center gap-2">
+                <code className="text-xs font-mono break-all text-primary flex-1">
+                  {selectedPage?.publicSlug ? `${window.location.origin}/p/${selectedPage.publicSlug}` : ""}
+                </code>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 gap-1 text-xs"
+                  onClick={() => {
+                    if (selectedPage?.publicSlug) {
+                      navigator.clipboard.writeText(`${window.location.origin}/p/${selectedPage.publicSlug}`);
+                      toast({ title: "Copied to clipboard" });
+                    }
+                  }}
+                >
+                  <Copy className="h-3 w-3" /> Copy
+                </Button>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                className="gap-2 flex-1"
+                variant="outline"
+                onClick={() => {
+                  if (selectedPage?.publicSlug) {
+                    window.open(`${window.location.origin}/p/${selectedPage.publicSlug}`, "_blank");
+                  }
+                }}
+              >
+                <ExternalLink className="h-3.5 w-3.5" /> Open Page
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-2 text-destructive border-destructive/30 hover:bg-destructive/10"
+                disabled={unpublishMutation.isPending}
+                onClick={() => {
+                  if (selectedPage) {
+                    unpublishMutation.mutate({ businessId, funnelId: funnel.id, id: selectedPage.id });
+                  }
+                }}
+              >
+                {unpublishMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Globe className="h-3.5 w-3.5" />}
+                Unpublish
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete confirm dialog */}
       <Dialog open={confirmDelete} onOpenChange={setConfirmDelete}>
