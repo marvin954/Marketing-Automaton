@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useBusiness } from "@/lib/business-context";
 import {
   useListFunnels, useCreateFunnel, useDeleteFunnel, useGetFunnel, useUpdateFunnelPage,
@@ -839,18 +839,48 @@ function PageEditor({ businessId, funnel, page }: { businessId: number; funnel: 
   const [isDirty, setIsDirty] = useState(false);
   const [pageInstruction, setPageInstruction] = useState("");
 
+  const isDirtyRef = useRef(false);
+  const sectionsRef = useRef<FunnelSection[]>(sections);
+  isDirtyRef.current = isDirty;
+  sectionsRef.current = sections;
+
   const updateMutation = useUpdateFunnelPage({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: getGetFunnelQueryKey(businessId, funnel.id) });
-      toast({ title: "Page saved!" });
       setIsDirty(false);
     },
     onError: () => toast({ title: "Failed to save", variant: "destructive" }),
   });
 
-  const handleSave = () => {
-    updateMutation.mutate({ businessId, funnelId: funnel.id, id: page.id, body: { sections } });
+  const handleSave = async () => {
+    try {
+      await updateMutation.mutateAsync({ businessId, funnelId: funnel.id, id: page.id, body: { sections } });
+      toast({ title: "Saved!", description: "All sections have been saved." });
+    } catch { /* error toast handled by mutation */ }
   };
+
+  // Debounced auto-save: fires 1.5s after the last edit
+  useEffect(() => {
+    if (!isDirty) return;
+    const timer = setTimeout(() => {
+      updateMutation.mutate({ businessId, funnelId: funnel.id, id: page.id, body: { sections } });
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, [sections, isDirty]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Save immediately on unmount if still dirty (handles fast page-switching)
+  useEffect(() => {
+    return () => {
+      if (isDirtyRef.current && sectionsRef.current.length > 0) {
+        const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
+        fetch(`${BASE}/api/businesses/${businessId}/funnels/${funnel.id}/pages/${page.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sections: sectionsRef.current }),
+        }).catch(() => {});
+      }
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleGenerate = async () => {
     setIsGenerating(true);
