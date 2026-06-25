@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useBusiness } from "@/lib/business-context";
 import {
   useListFunnels, useCreateFunnel, useDeleteFunnel, useGetFunnel, useUpdateFunnelPage,
+  usePublishPage, useUnpublishPage,
   getListFunnelsQueryKey, getGetFunnelQueryKey,
   type FunnelRecord, type FunnelWithPages, type FunnelPage, type FunnelSection, type FunnelSectionType,
 } from "@workspace/api-client-react";
@@ -25,6 +26,7 @@ import {
   HandHeart, Wrench, BedDouble, Landmark, School,
   Gem, PawPrint, Paintbrush, Car, Smile,
   Leaf, Mic, Link2, Truck, Building2, Signal, Plane, Sparkles,
+  Globe, Copy, ExternalLink,
 } from "lucide-react";
 import { format } from "date-fns";
 import ReactMarkdown from "react-markdown";
@@ -792,6 +794,9 @@ function FunnelDetail({ businessId, funnelId, onBack, onDelete }: {
                   {hasContent ? <Check className="h-3 w-3" /> : i + 1}
                 </span>
                 {page.name}
+                {page.publicSlug && (
+                  <span title="Published" className="ml-1 text-[10px] font-mono text-green-400">●</span>
+                )}
               </button>
             </div>
           );
@@ -838,6 +843,7 @@ function PageEditor({ businessId, funnel, page }: { businessId: number; funnel: 
   const [expandedSection, setExpandedSection] = useState<string | null>(sections[0]?.id ?? null);
   const [isDirty, setIsDirty] = useState(false);
   const [pageInstruction, setPageInstruction] = useState("");
+  const [showPublish, setShowPublish] = useState(false);
 
   const isDirtyRef = useRef(false);
   const sectionsRef = useRef<FunnelSection[]>(sections);
@@ -850,6 +856,23 @@ function PageEditor({ businessId, funnel, page }: { businessId: number; funnel: 
       setIsDirty(false);
     },
     onError: () => toast({ title: "Failed to save", variant: "destructive" }),
+  });
+
+  const publishMutation = usePublishPage({
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: getGetFunnelQueryKey(businessId, funnel.id) });
+      toast({ title: "Published!", description: "Page is now live at a public URL." });
+      setShowPublish(true);
+    },
+    onError: () => toast({ title: "Publish failed", variant: "destructive" }),
+  });
+
+  const unpublishMutation = useUnpublishPage({
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: getGetFunnelQueryKey(businessId, funnel.id) });
+      toast({ title: "Unpublished" });
+      setShowPublish(false);
+    },
   });
 
   const handleSave = async () => {
@@ -970,6 +993,27 @@ function PageEditor({ businessId, funnel, page }: { businessId: number; funnel: 
                   ? <><Save className="h-3.5 w-3.5" /> Save</>
                   : <><Check className="h-3.5 w-3.5" /> Saved</>}
             </Button>
+            {page.publicSlug ? (
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-2 text-green-400 border-green-400/30"
+                onClick={() => setShowPublish(true)}
+              >
+                <Globe className="h-3.5 w-3.5" /> Published
+              </Button>
+            ) : (
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-2"
+                disabled={publishMutation.isPending}
+                onClick={() => publishMutation.mutate({ businessId, funnelId: funnel.id, id: page.id })}
+              >
+                {publishMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Globe className="h-3.5 w-3.5" />}
+                Publish
+              </Button>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-2 px-4 pb-3 border-t border-border/50 pt-3">
@@ -993,6 +1037,64 @@ function PageEditor({ businessId, funnel, page }: { businessId: number; funnel: 
           <div className="overflow-hidden text-[11px] leading-relaxed line-clamp-4 whitespace-pre-wrap">{generatedText}</div>
         </div>
       )}
+
+      {/* Publish dialog */}
+      <Dialog open={showPublish} onOpenChange={setShowPublish}>
+        <DialogContent className="sm:max-w-[420px] bg-background/95 backdrop-blur border-primary/20">
+          <DialogHeader>
+            <DialogTitle className="font-mono uppercase tracking-wider text-sm flex items-center gap-2">
+              <Globe className="h-4 w-4 text-green-400" /> Published Page
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div className="rounded-lg border border-border bg-muted/20 p-4">
+              <p className="text-[10px] uppercase tracking-wider font-mono text-muted-foreground mb-1">Public URL</p>
+              <div className="flex items-center gap-2">
+                <code className="text-xs font-mono break-all text-primary flex-1">
+                  {page.publicSlug ? `${window.location.origin}/p/${page.publicSlug}` : ""}
+                </code>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 gap-1 text-xs"
+                  onClick={() => {
+                    if (page.publicSlug) {
+                      navigator.clipboard.writeText(`${window.location.origin}/p/${page.publicSlug}`);
+                      toast({ title: "Copied to clipboard" });
+                    }
+                  }}
+                >
+                  <Copy className="h-3 w-3" /> Copy
+                </Button>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                className="gap-2 flex-1"
+                variant="outline"
+                onClick={() => {
+                  if (page.publicSlug) {
+                    window.open(`${window.location.origin}/p/${page.publicSlug}`, "_blank");
+                  }
+                }}
+              >
+                <ExternalLink className="h-3.5 w-3.5" /> Open Page
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-2 text-destructive border-destructive/30 hover:bg-destructive/10"
+                disabled={unpublishMutation.isPending}
+                onClick={() => unpublishMutation.mutate({ businessId, funnelId: funnel.id, id: page.id })}
+              >
+                {unpublishMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Globe className="h-3.5 w-3.5" />}
+                Unpublish
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Sections */}
       {sections.map((section) => (

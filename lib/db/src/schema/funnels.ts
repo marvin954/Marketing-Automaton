@@ -19,6 +19,8 @@ export const funnelPagesTable = pgTable("funnel_pages", {
   type: text("type").notNull(),
   position: integer("position").notNull().default(0),
   sections: jsonb("sections").notNull().default([]),
+  publicSlug: text("public_slug"),
+  publishedAt: timestamp("published_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

@@ -732,4 +732,59 @@ ${customInstruction ? `- Apply this custom instruction throughout: ${customInstr
   }
 });
 
+// ---------------------------------------------------------------------------
+// Publish / unpublish a page
+// ---------------------------------------------------------------------------
+
+router.put("/businesses/:businessId/funnels/:funnelId/pages/:id/publish", async (req, res) => {
+  const params = GenerateFunnelPageParams.safeParse({
+    businessId: req.params.businessId,
+    funnelId: req.params.funnelId,
+    id: req.params.id,
+  });
+  if (!params.success) return res.status(400).json({ error: "Invalid params" });
+  const { businessId, funnelId, id } = params.data;
+
+  try {
+    const [page] = await db
+      .select()
+      .from(funnelPagesTable)
+      .where(and(eq(funnelPagesTable.id, id), eq(funnelPagesTable.funnelId, funnelId)));
+    if (!page) return res.status(404).json({ error: "Page not found" });
+
+    const slug = `${page.type}-${page.id}-${Math.random().toString(36).slice(2, 8)}`;
+    const [updated] = await db
+      .update(funnelPagesTable)
+      .set({ publicSlug: slug, publishedAt: new Date() })
+      .where(and(eq(funnelPagesTable.id, id), eq(funnelPagesTable.funnelId, funnelId)))
+      .returning();
+    return res.json({ slug: updated.publicSlug, url: `/p/${updated.publicSlug}` });
+  } catch (err) {
+    req.log.error({ err }, "Failed to publish page");
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.put("/businesses/:businessId/funnels/:funnelId/pages/:id/unpublish", async (req, res) => {
+  const params = GenerateFunnelPageParams.safeParse({
+    businessId: req.params.businessId,
+    funnelId: req.params.funnelId,
+    id: req.params.id,
+  });
+  if (!params.success) return res.status(400).json({ error: "Invalid params" });
+  const { businessId, funnelId, id } = params.data;
+
+  try {
+    const [updated] = await db
+      .update(funnelPagesTable)
+      .set({ publicSlug: null, publishedAt: null })
+      .where(and(eq(funnelPagesTable.id, id), eq(funnelPagesTable.funnelId, funnelId)))
+      .returning();
+    return res.json({ unpublish: true, pageId: updated.id });
+  } catch (err) {
+    req.log.error({ err }, "Failed to unpublish page");
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 export default router;

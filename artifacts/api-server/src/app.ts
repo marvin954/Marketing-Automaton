@@ -35,6 +35,10 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use("/api", router);
 
+// Public landing pages (must come before SPA fallback)
+import { renderPublicPage } from "./routes/public-pages";
+app.get("/p/:slug", renderPublicPage);
+
 // Serve the built React frontend for all non-API routes
 const frontendDist = path.resolve(__dirname, "../../marketing-agent/dist/public");
 app.use(express.static(frontendDist));

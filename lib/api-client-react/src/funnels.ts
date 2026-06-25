@@ -75,6 +75,8 @@ export interface FunnelPage {
   type: string;
   position: number;
   sections: FunnelSection[];
+  publicSlug: string | null;
+  publishedAt: string | null;
   createdAt: string;
 }
 
@@ -205,6 +207,34 @@ export const updateFunnelPage = (
     headers: { "Content-Type": "application/json", ...(options?.headers ?? {}) },
     body: JSON.stringify(body),
   });
+
+// ---- Publish Page ----
+
+export const publishPage = (businessId: number, funnelId: number, id: number, options?: RequestInit) =>
+  customFetch<{ slug: string; url: string }>(`/api/businesses/${businessId}/funnels/${funnelId}/pages/${id}/publish`, {
+    ...options,
+    method: "PUT",
+  });
+
+export function usePublishPage<TError = ErrorType<unknown>, TContext = unknown>(
+  options?: UseMutationOptions<{ slug: string; url: string }, TError, { businessId: number; funnelId: number; id: number }, TContext>
+): UseMutationResult<{ slug: string; url: string }, TError, { businessId: number; funnelId: number; id: number }, TContext> {
+  return useMutation({ mutationFn: ({ businessId, funnelId, id }) => publishPage(businessId, funnelId, id), ...options });
+}
+
+// ---- Unpublish Page ----
+
+export const unpublishPage = (businessId: number, funnelId: number, id: number, options?: RequestInit) =>
+  customFetch<{ unpublish: boolean; pageId: number }>(`/api/businesses/${businessId}/funnels/${funnelId}/pages/${id}/unpublish`, {
+    ...options,
+    method: "PUT",
+  });
+
+export function useUnpublishPage<TError = ErrorType<unknown>, TContext = unknown>(
+  options?: UseMutationOptions<{ unpublish: boolean; pageId: number }, TError, { businessId: number; funnelId: number; id: number }, TContext>
+): UseMutationResult<{ unpublish: boolean; pageId: number }, TError, { businessId: number; funnelId: number; id: number }, TContext> {
+  return useMutation({ mutationFn: ({ businessId, funnelId, id }) => unpublishPage(businessId, funnelId, id), ...options });
+}
 
 export function useUpdateFunnelPage<TError = ErrorType<unknown>, TContext = unknown>(
   options?: UseMutationOptions<

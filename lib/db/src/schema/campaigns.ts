@@ -13,6 +13,10 @@ export const campaignsTable = pgTable("campaigns", {
   startDate: text("start_date"),
   endDate: text("end_date"),
   budget: real("budget"),
+  emailSubject: text("email_subject"),
+  emailBody: text("email_body"),
+  emailHtml: text("email_html"),
+  funnelPageId: integer("funnel_page_id"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

@@ -136,6 +136,14 @@ export interface Campaign {
   endDate?: string | null;
   /** @nullable */
   budget?: number | null;
+  /** @nullable */
+  emailSubject?: string | null;
+  /** @nullable */
+  emailBody?: string | null;
+  /** @nullable */
+  emailHtml?: string | null;
+  /** @nullable */
+  funnelPageId?: number | null;
   createdAt: string;
 }
 
